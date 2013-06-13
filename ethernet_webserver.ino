@@ -124,6 +124,9 @@ void setup ()
         wd_resets++; //count resets
     else wd_resets = 0;
         wdt_enable(WDTO_8S);
+
+    /* Run timer function on start to set sensors variables */
+    on_timer_function();
 }
 
 void loop () {
@@ -197,8 +200,8 @@ void job_switch(char *tempBuff, int &charsReceived, boolean tcp) {
         /* Lights on          */ case 'p': if(tcp)  end_TCP();   mySwitch.switchOn(tempBuff[charsReceived-2], 1, tempBuff[charsReceived-1] -48); break;
         /* Lights dim         */ case 'd': if(tcp)  end_TCP();   mySwitch.switchOn(tempBuff[charsReceived-2], 1, tempBuff[charsReceived-1] -48); delay(DIMTIME); mySwitch.switchOn(tempBuff[charsReceived-2], 1, tempBuff[charsReceived-1] -48); break;
         /* Lights extra       */ case 'x': if(tcp)  end_TCP();   extra_outlet(tempBuff[charsReceived-3] -48, tempBuff[charsReceived-2] -48, tempBuff[charsReceived-1] -48); break;
-        /* Send info          */ case 'n': if(!tcp) break;       client.print(ovn_aktiv ? "1," : "0,"); client.print(ovn_on ? "1," : "0,"); client.print(sensors.getTempCByIndex(0)); client.print(','); client.print((int)(low_temp*TEMP_PRESCALE)); client.print(','); client.print((int)(high_temp*TEMP_PRESCALE)); client.print(','); client.print((int)TEMP_PRESCALE); client.print(','); client.print(int(doorbell_on)); client.print(','); client.print(DHT11.humidity); client.print(','); client.print(analogRead(LIGHT_PIN)); client.print(','); client.print(sensor_count); client.stop(); break;
-        /* Send info desc:    $D,$D,$F,$D,$D,$F,$D,$D,$D,$D - ovn_aktiv, ovn_on, temp, low_temp, high_temp, TEMP_PRESCALE, doorbell_on, humidity, light(0-1023), sensor count */
+        /* Send info          */ case 'n': if(!tcp) break;       client.print(ovn_aktiv ? "1," : "0,"); client.print(ovn_on ? "1," : "0,"); client.print(sensors.getTempCByIndex(0)); client.print(','); client.print((int)(low_temp*TEMP_PRESCALE)); client.print(','); client.print((int)(high_temp*TEMP_PRESCALE)); client.print(','); client.print((int)TEMP_PRESCALE); client.print(','); client.print(doorbell_on ? "1," : "0,"); client.print(DHT11.humidity); client.print(','); client.print(analogRead(LIGHT_PIN)); client.print(','); client.print(sensor_count); client.print(','); client.print(ovn_mode); client.print(','); client.print(overflow_offset); client.stop(); break;
+        /* Send info desc:    $D,$D,$F,$D,$D,$F,$D,$D,$D,$D,$D,$D - ovn_aktiv, ovn_on, temp, low_temp, high_temp, TEMP_PRESCALE, doorbell_on, humidity, light(0-1023), sensor count, ovn_mode, overflow_offset */
         /* Send only humidity */ case 'h': if(!tcp) break;       DHT11.read(DHT11PIN); client.print(DHT11.humidity); client.stop(); break;
         /* Toggle timer(ovn)  */ case 'm': if(tcp)  end_TCP();   if(ovn_aktiv){ ovn_aktiv = false; mySwitch.switchOff('d', 1, 3); ovn_on = false; eeprom_write_byte(0,0); digitalWrite(LED_PIN, 0);} else { ovn_aktiv = true; overflow_count = 0; eeprom_write_byte(0,1);} break;
         /* Change ovn mode    */ case 'M': if(tcp)  end_TCP();   if(++ovn_mode > 1) ovn_mode = 0; eeprom_write_byte((unsigned byte *) 4,ovn_mode); break;
@@ -212,7 +215,7 @@ void job_switch(char *tempBuff, int &charsReceived, boolean tcp) {
         /* Set low temp       */ case 'L': if(tcp)  end_TCP();   low_temp  = ((tempBuff[charsReceived-3]-48)*100 + (tempBuff[charsReceived-2]-48)*10 +(tempBuff[charsReceived-1]-48))/TEMP_PRESCALE; eeprom_write_byte((unsigned byte *) 1,low_temp*TEMP_PRESCALE); break;
         /* Doorbell on/off    */ case 'D': if(tcp)  end_TCP();   doorbell_on = (doorbell_on ? false : true); eeprom_write_byte((unsigned byte *) 3,doorbell_on); break;
         /* Force temp check   */ case 'Z': if(tcp)  end_TCP();   on_timer_function(); break;
-        /* overflow offset    */ case 'O': if(tcp)  end_TCP();   overflow_offset = ((tempBuff[charsReceived-5]-48)*10000 + (tempBuff[charsReceived-4]-48)*1000 + (tempBuff[charsReceived-3]-48)*100 + (tempBuff[charsReceived-2]-48)*10 +(tempBuff[charsReceived-1]-48)); eeprom_write_word((unsigned word *) 5, overflow_offset); break;
+        /* overflow offset    */ case 'O': if(tcp)  end_TCP();   overflow_offset = ((tempBuff[charsReceived-5]-48)*10000 + (tempBuff[charsReceived-4]-48)*1000 + (tempBuff[charsReceived-3]-48)*100 + (tempBuff[charsReceived-2]-48)*10 +(tempBuff[charsReceived-1]-48)); overflow_count = 0; eeprom_write_word((unsigned word *) 5, overflow_offset); break;
         /* Doorbell           */ case 'r': if(tcp)  end_TCP();   doorbell(); break;
       ///* DIM TEST           */ case 'B': if(tcp)  end_TCP();   Serial.begin(1200);Serial.write("UUUUUUU");Serial.write(tempBuff[charsReceived-4]);Serial.write(((tempBuff[charsReceived-3]-48)*100 + (tempBuff[charsReceived-2]-48)*10 +(tempBuff[charsReceived-1]-48)));Serial.end();break;
       ///* RF12 TEST          */ case 'R': if(tcp)  end_TCP();   rf12_send_test(); break;
