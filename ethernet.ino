@@ -26,16 +26,21 @@ void homePage() {
     client.print("</h1><p>Ovn daemon is: "); client.print(ovn_aktiv);
     client.print("<p>Ovn status is: "); client.print(ovn_on);
     client.print("<p>Ovn mode is: "); client.print(ovn_mode ? "cooling" : "heating");
+    client.print("<p>Light is: "); client.print(light_auto);client.print(light_auto_on);
+    client.print("<p>Light sec: "); client.print(light_wait_msec/1000);
+    client.print("<p>brightness limit: "); client.print(light_limit_auto*4);
     client.print("<p>Doorbell is: "); client.print(doorbell_on);
     client.print("<p>Min-Temp: "); client.print(low_temp);
     client.print("<p>Max-Temp: "); client.print(high_temp);
     client.print("<p>DHT11: "); client.print(DHT11.humidity);client.print("% - ");client.print(DHT11.temperature);
     client.print("<p>Uptime: "); client.print(t);
-    client.print("<p>Light: "); client.print(analogRead(LIGHT_PIN));
+    client.print("<p>Brightness: "); client.print(analogRead(LIGHT_PIN));
     client.print("<p>Sensor count: "); client.print(sensor_count);
+    client.print("<p>Last movement: "); client.print(lastMovement/1000);
     client.print("<p>Overflow: "); client.print(overflow_count);client.print(" / ");client.print(overflow_offset);
     client.print("<p>WD resets: "); client.print(wd_resets);
-    client.print("<pre>"); client.println(textBuff); client.println(packetBuffer);
+    client.print("<hr><pre>"); client.println(textBuff);
+    client.print("<hr><pre>"); client.println(packetBuffer);
 #if DEBUG
     client.print("<p>bytes free: "); client.print(freeRam());
 #endif
